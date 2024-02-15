@@ -1,6 +1,6 @@
 :root {
   --dropdown-padding: 0.5rem;
-  --dropdown-list-width: 10rem;
+  --dropdown-list-width: 15rem;
   --dropdown-list-padding: 1rem;
   --dropdown-border-radius: 0.5rem;
   --dropdown-main-background-color: #fcfcfc;
@@ -64,14 +64,19 @@
   padding: 0.3rem;
   border: 0.1rem solid #e0e0e0;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  z-index: 100;
+
+  &:focus {
+    outline: none;
+  }
 
   &[data-presence="false"] {
-    animation: slideOut 100ms ease-in-out;
+    animation: slideOut 150ms ease-in-out;
     opacity: 0;
   }
 
   &[data-presence="true"] {
-    animation: slideIn 100ms ease-in-out;
+    animation: slideIn 150ms ease-in-out;
   }
 }
 
@@ -127,26 +132,22 @@
 
 @keyframes slideIn {
   from {
+    transform: translateY(-5%) scale(0.9);
     opacity: 0;
-    transform: scale(0.5);
-    transform: translateY(-3%);
   }
   to {
+    transform: translateY(0%) scale(1);
     opacity: 1;
-    transform: scale(1);
-    transform: translateY(0%);
   }
 }
 
 @keyframes slideOut {
   from {
+    transform: translateY(0%) scale(1);
     opacity: 1;
-    transform: scale(1);
-    transform: translateY(0%);
   }
   to {
+    transform: translateY(-5%) scale(0.9);
     opacity: 0;
-    transform: scale(0.5);
-    transform: translateY(-3%);
   }
 }

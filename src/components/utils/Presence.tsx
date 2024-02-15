@@ -1,4 +1,4 @@
-import { cloneElement, useEffect } from "react";
+import { cloneElement } from "react";
 import { usePresence } from "../../hooks/usePresence";
 
 type PresenceProp = {
@@ -12,7 +12,7 @@ export default function Presence({
   present,
   ...props
 }: PresenceProp) {
-  const { mounted, animate, putNode } = usePresence({
+  const { mounted, animate, setNode } = usePresence({
     trigger: present,
     initial: false,
   });
@@ -21,7 +21,7 @@ export default function Presence({
 
   const presenceData = {
     "data-presence": animate ? "true" : "false",
-    refCallback: putNode,
+    ref: setNode,
   };
 
   return cloneElement(children, { ...presenceData, ...props });

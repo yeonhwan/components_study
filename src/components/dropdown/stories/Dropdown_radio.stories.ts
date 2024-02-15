@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import Example from "./Example";
+import Example from "../example/Radio";
 
 const meta = {
-  title: "example/Dropdown",
+  title: "example/Dropdown/radio",
   component: Example,
   parameters: {
     layout: "centered",

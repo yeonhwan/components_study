@@ -1,31 +1,30 @@
-//todo) 1. dismissability
-//todo) 2. focus management
+// // todo: 1. auto detect open direction
+// // todo: 2. modes | groups
+//^ CLEAN UP | REFACTOR
 
-//---
-//todo) 3. change mode (radio / checkbox / default)
-//---
-//todo) 4. change position
-//todo) 5. collision detection
+// todo: 2. asChild
+// todo: 3. submenus
+// todo: 4. roving focus
+// todo: 5. theme mode
 
-//---
-//todo) 6. sub menus
-
-import {
-  useState,
-  createContext,
-  useContext,
-  useRef,
-  forwardRef,
-  useEffect,
+import { useState, createContext, useContext, useRef, forwardRef } from "react";
+import type {
+  Dispatch,
+  HTMLAttributes,
+  MutableRefObject,
+  ReactElement,
+  SetStateAction,
 } from "react";
-import type { Dispatch, ReactElement, SetStateAction } from "react";
 import { Popper } from "../popper/Popper";
-import { useComposedRef } from "../../hooks/useComposedRef";
-import Compose from "../utils/Compose";
+import Dismissable from "../utils/Dismissable";
+import CheckIcon from "../icon/Check";
+import DotIcon from "../icon/Dot";
+import Primitive from "../primitives/Primitive";
 
 type DropdownContextType = {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
+  root: MutableRefObject<HTMLElement | null>;
 } | null;
 
 const DropdownContext = createContext<DropdownContextType>(null);
@@ -39,64 +38,65 @@ const useDropdownContext = () => {
   return state;
 };
 
-function Root({ children }: { children: React.ReactNode }) {
+// --------------------------------------
+// ROOT
+// Inside state: open
+
+type DropdownRootProps = {
+  children: ReactElement[];
+} & HTMLAttributes<HTMLDivElement>;
+
+function Root({ children, ...props }: DropdownRootProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const context = {
-    root: rootRef.current,
-  };
-
-  useEffect(() => {
-    console.log("open changed", open);
-    console.log("-------------------");
-  });
-
   return (
-    <DropdownContext.Provider value={{ open, setOpen, context }}>
-      <div className="dropdown__wrapper" ref={rootRef}>
+    <DropdownContext.Provider value={{ open, setOpen, root: rootRef }}>
+      <div className="dropdown__wrapper" ref={rootRef} {...props}>
         {children}
       </div>
     </DropdownContext.Provider>
   );
 }
 
-function Collpased({
-  children,
-  asChild = false,
-}: {
-  children: React.ReactNode;
-  asChild?: boolean;
-}) {
-  const state = useContext(DropdownContext);
-  if (!state)
-    throw new Error(
-      "Dropdown compound components cannot be rendered outside the Dropdown component"
-    );
-  const { open, setOpen } = state;
+//--------------------------------------
+// Collapsed
 
-  if (children && asChild && children instanceof Object) {
-    children.onClick = () => setOpen(!open);
-    return children;
-  }
+type DropdownCollpasedProps = {
+  children: React.ReactElement | string;
+  asChild?: boolean;
+} & HTMLAttributes<HTMLButtonElement>;
+
+function Collapsed({
+  asChild = false,
+  children,
+  ...props
+}: DropdownCollpasedProps) {
+  const { open, setOpen } = useContext(DropdownContext)!;
 
   return (
-    <div onClick={() => setOpen(!open)} className="dropdown__collapsed">
-      {children}
-    </div>
+    <Primitive.button
+      asChild={asChild}
+      children={children}
+      onClick={() => setOpen(!open)}
+      {...props}
+    />
   );
 }
 
-type MenuProps = {
-  children: ReactElement[];
-};
+// --------------------------------------
+// MENU
 
-function Menu({ mode, ...props }: MenuProps) {
+type DropdownMenuProps = {
+  children: ReactElement[];
+} & HTMLAttributes<HTMLDivElement>;
+
+function Menu({ ...props }: DropdownMenuProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
   const {
     open,
-    context: { root },
+    root: { current: root },
   } = useDropdownContext();
 
   return (
@@ -110,16 +110,6 @@ const List = forwardRef(
   ({ children, ...props }: { children: ReactElement[] }, forwardRef) => {
     const { open, setOpen } = useDropdownContext();
 
-    const handler = (e) => {
-      console.log("focus event run");
-      document.body.style.pointerEvents = "none";
-    };
-
-    const outHandler = (e) => {
-      console.log("focusout event run");
-      document.body.style.pointerEvents = "auto";
-    };
-
     return (
       <Dismissable
         ref={forwardRef}
@@ -128,7 +118,7 @@ const List = forwardRef(
           setOpen(false);
         }}
       >
-        <div tabIndex={-1} {...props}>
+        <div tabIndex={-1} {...props} style={{ pointerEvents: "auto" }}>
           {children}
         </div>
       </Dismissable>
@@ -136,108 +126,181 @@ const List = forwardRef(
   }
 );
 
-const Dismissable = forwardRef(({ onLoseFocus, ...props }, forwardRef) => {
-  const focusContext = useRef(new Set());
-  const [node, setNode] = useState<HTMLElement | null>(null);
-  const prevFocused = useRef(false);
+// --------------------------------------
+// LABEL
 
-  const autoFocus = (element) => {
-    if (element && !prevFocused.current) {
-      console.log(element, "focused?");
-      element.focus();
-      prevFocused.current = true;
-    }
-  };
+type LabelProps = {
+  children: React.ReactNode;
+  asChild?: boolean;
+} & HTMLAttributes<HTMLDivElement>;
 
-  const refControl = (node) => {
-    if (node) {
-      setNode(node);
-    }
-  };
-  const composedRef = useComposedRef(forwardRef, refControl, autoFocus);
-
-  useEffect(() => {
-    if (node) {
-      const nodeList = Array.from(node.children);
-
-      nodeList.forEach((node) => {
-        focusContext.current.add(node);
-      });
-
-      const outHandler = (e) => {
-        console.log(e.relatedTarget, "event rt");
-        if (!focusContext.current.has(e.relatedTarget)) {
-          console.log("dismissed");
-          onLoseFocus();
-        }
-      };
-
-      node.addEventListener("focusout", outHandler, true);
-      node.addEventListener("blur", outHandler, true);
-
-      return () => {
-        node.removeEventListener("focusout", outHandler, true);
-        node.removeEventListener("blur", outHandler, true);
-      };
-    }
-  }, [node]);
-
-  return <Compose {...props} ref={composedRef} />;
-});
-
-function Title({ children, ...props }: { children: React.ReactElement }) {
+function Label({ asChild = false, children, ...props }: LabelProps) {
   return (
-    <div
-      onBlur={(e) => {
-        console.log("title blur");
-      }}
+    <Primitive.div
+      asChild={asChild}
       {...props}
+      style={{ pointerEvents: "none" }}
     >
       {children}
-    </div>
+    </Primitive.div>
   );
 }
 
-function Group({ children, ...props }: { children: React.ReactElement }) {
-  return <div {...props}>{children}</div>;
+// --------------------------------------
+// GROUP
+
+type MenuGroupContextType = {
+  items?: {
+    iconWidth?: number;
+    iconHeight?: number;
+  };
+  mode: "default" | "check" | "radio";
+  radio?: {
+    sharedState?: string | undefined;
+    onChange?: (value: string) => void;
+  };
+} | null;
+
+const MenuGroupContext = createContext<MenuGroupContextType>(null);
+const useMenuGroupContext = () => {
+  const state = useContext(MenuGroupContext);
+  if (!state)
+    throw new Error(
+      "Dropdown compound components cannot be rendered outside the Dropdown component"
+    );
+
+  return state;
+};
+
+type MenuGroupProps = {
+  mode: "default" | "check" | "radio";
+  sharedState?: string;
+  onChange?: (value: string) => void;
+  asChild?: boolean;
+  items?: {
+    iconWidth?: number;
+    iconHeight?: number;
+  };
+
+  children: React.ReactElement[];
+} & Omit<HTMLAttributes<HTMLDivElement>, "onChange">;
+
+function Group({
+  children,
+  items,
+  mode = "default",
+  sharedState,
+  onChange,
+  asChild = false,
+  ...props
+}: MenuGroupProps) {
+  if (mode === "radio" && !sharedState) {
+    throw new Error("Radio group must have a shared state");
+  }
+
+  const radioState = mode === "radio" ? { sharedState, onChange } : undefined;
+
+  return (
+    <Primitive.div
+      asChild={asChild}
+      {...props}
+      style={{ pointerEvents: "none" }}
+    >
+      <MenuGroupContext.Provider value={{ items, mode, radio: radioState }}>
+        {children}
+      </MenuGroupContext.Provider>
+    </Primitive.div>
+  );
 }
 
+// --------------------------------------
+// SEPARATE
+
 function Separate({ ...props }) {
-  return <div {...props}></div>;
+  return <Primitive.div asChild={false} {...props}></Primitive.div>;
 }
+
+type ItemProps = {
+  children: React.ReactElement | string;
+  disabled?: boolean;
+  checked?: boolean;
+  onClick?: () => void;
+  value?: string;
+  asChild?: boolean;
+} & HTMLAttributes<HTMLDivElement>;
+
+// --------------------------------------
+// ITEM
 
 function Item({
   children,
   disabled,
   checked,
   onClick,
+  value,
+  asChild = false,
   ...props
-}: {
-  children: React.ReactElement;
-  disabled: boolean;
-  checked: boolean;
-  props: unknown[];
-}) {
-  const clickHandler = (e) => {
-    console.log("item click");
+}: ItemProps) {
+  const { mode, items, radio } = useMenuGroupContext();
+
+  const icon = { width: items?.iconWidth, height: items?.iconHeight };
+  const { sharedState, onChange } = radio ?? {};
+
+  const clickHandler = (e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    onClick();
+    if (mode === "radio") {
+      const value = (e.target as HTMLElement).getAttribute("data-value")!;
+      onChange?.(value);
+      return;
+    }
+
+    onClick?.();
   };
 
+  const preventDrag = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  };
+
+  if (mode === "radio") {
+    checked = value === sharedState;
+  }
+
   return (
-    <div
+    <Primitive.div
+      asChild={asChild}
       data-checked={checked ? "true" : ""}
       data-disabled={disabled ? "true" : ""}
       style={{
-        pointerEvents: disabled || checked ? "none" : "auto",
+        pointerEvents: disabled ? "none" : "auto",
       }}
-      onMouseDown={clickHandler}
-      {...props}
+      onPointerUp={clickHandler}
+      onMouseDown={preventDrag}
+      onMouseMove={preventDrag}
       tabIndex={-1}
+      data-value={value}
+      {...props}
     >
+      {mode !== "default" && (
+        <ItemIcon mode={mode} style={{ opacity: checked ? 1 : 0, ...icon }} />
+      )}
       {children}
-    </div>
+    </Primitive.div>
   );
 }
 
-export { Root, List, Menu, Item, Collpased, Group, Separate, Title };
+type ItemIconProps = {
+  mode: "check" | "radio";
+  style: React.CSSProperties;
+} & HTMLAttributes<SVGSVGElement>;
+
+function ItemIcon({ mode, style, ...props }: ItemIconProps) {
+  if (mode === "check") {
+    return <CheckIcon {...props} style={style} />;
+  }
+
+  return <DotIcon {...props} style={style} />;
+}
+
+export { Root, List, Menu, Item, Label, Group, Separate, Collapsed };

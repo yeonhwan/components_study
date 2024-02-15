@@ -5,13 +5,9 @@ type PortalProps = {
   children: React.ReactElement;
 };
 
-type MountProps = {
-  children: React.ReactElement;
-};
-
 const Portal = React.forwardRef<HTMLDivElement, PortalProps>(
   ({ children, ...props }: PortalProps, forwardRef) => {
-    const Element = React.cloneElement(children, { ...props });
+    const Element = React.cloneElement(children, { ...props, ref: forwardRef });
 
     return createPortal(Element, document.body);
   }

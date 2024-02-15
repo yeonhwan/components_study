@@ -59,26 +59,36 @@ export default function Example({ data }: ExampleProps) {
           >
             Item 4
           </Dropdown.Item>
+        </Dropdown.Group>
+        <Dropdown.Separate className="dropdown__list__separate" />
+        <Dropdown.Group className="dropdown__list__group">
           <Dropdown.Item
-            checked={checkData === 4}
-            onClick={() => setCheckData(4)}
+            checked={checkData === 3}
+            onClick={() => setCheckData(3)}
             className="dropdown__list__item"
           >
-            Item 5
+            New Item5
           </Dropdown.Item>
           <Dropdown.Item
-            checked={checkData === 5}
-            onClick={() => setCheckData(5)}
+            checked={checkData === 3}
+            onClick={() => setCheckData(3)}
             className="dropdown__list__item"
           >
-            Item 6
+            New Item6
           </Dropdown.Item>
           <Dropdown.Item
-            checked={checkData === 6}
-            onClick={() => setCheckData(6)}
+            checked={checkData === 3}
+            onClick={() => setCheckData(3)}
             className="dropdown__list__item"
           >
-            Item 7
+            New Item7
+          </Dropdown.Item>
+          <Dropdown.Item
+            checked={checkData === 3}
+            onClick={() => setCheckData(3)}
+            className="dropdown__list__item"
+          >
+            New Item8
           </Dropdown.Item>
         </Dropdown.Group>
       </Dropdown.Menu>

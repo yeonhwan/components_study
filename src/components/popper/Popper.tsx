@@ -2,31 +2,39 @@ import {
   useFloating,
   autoUpdate,
   offset,
-  flip,
   hide,
+  autoPlacement,
 } from "@floating-ui/react";
-import React, { type ReactElement, forwardRef } from "react";
+import React, {
+  type ReactElement,
+  forwardRef,
+  HTMLAttributes,
+  CSSProperties,
+} from "react";
 import Portal from "../utils/Portal";
 import Presence from "../utils/Presence";
 
 type PopperProps = {
-  anchor: HTMLElement;
-  state: boolean;
   children: ReactElement;
+  anchor: HTMLElement | null;
+  state: boolean;
 };
 
-export const Popper = ({
-  anchor,
-  state,
-  ...props
-}: { children: React.FC } & PopperProps) => {
+export const Popper = ({ anchor, state, ...props }: PopperProps) => {
   const { floatingStyles, refs, isPositioned } = useFloating({
     strategy: "fixed",
     open: state,
     elements: {
       reference: anchor,
     },
-    middleware: [offset(-5), flip(), hide()],
+    middleware: [
+      offset(-5),
+      autoPlacement({
+        allowedPlacements: ["bottom", "top"],
+        padding: 5,
+      }),
+      hide(),
+    ],
     whileElementsMounted: autoUpdate,
   });
 
@@ -35,8 +43,8 @@ export const Popper = ({
       <Portal>
         <PopperWrapper
           isPositioned={isPositioned}
-          ref={refs.setFloating}
-          style={floatingStyles}
+          setAnchor={refs.setFloating}
+          floatingStyles={floatingStyles}
           state={state}
           {...props}
         />
@@ -45,30 +53,34 @@ export const Popper = ({
   );
 };
 
-const PopperWrapper = forwardRef<HTMLDivElement, PopperProps>(
+type PopperWrapperProps = {
+  children: ReactElement;
+  isPositioned: boolean;
+  state: boolean;
+  floatingStyles: CSSProperties;
+  setAnchor: (node: HTMLElement | null) => void;
+} & HTMLAttributes<HTMLDivElement>;
+
+const PopperWrapper = forwardRef<HTMLDivElement, PopperWrapperProps>(
   (
-    { children, style, isPositioned, state, refCallback, ...props },
+    { children, floatingStyles, isPositioned, state, setAnchor, ...props },
     forwardRef
   ) => {
-    const Element = React.cloneElement(children, {
-      ...props,
-      ref: refCallback,
-    });
-    const floatingStyles = style;
-
     const hide = state ? isPositioned : true;
 
     return (
       <div
-        id="popper__wrapper"
-        ref={forwardRef}
+        ref={setAnchor}
         className="popper__wrapper"
         style={{
           ...floatingStyles,
           transform: hide ? floatingStyles.transform : "translateY(-999%)",
         }}
       >
-        {Element}
+        {React.cloneElement(children, {
+          ...props,
+          ref: forwardRef,
+        })}
       </div>
     );
   }

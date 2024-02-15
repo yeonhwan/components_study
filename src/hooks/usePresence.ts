@@ -54,7 +54,7 @@ export const usePresence = ({
   return {
     mounted,
     animate,
-    putNode: useCallback((node: HTMLElement) => {
+    setNode: useCallback((node: HTMLElement) => {
       setNode(node);
     }, []),
   };
